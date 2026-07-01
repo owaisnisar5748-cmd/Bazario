@@ -14,9 +14,12 @@ RUN npm run build
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 ENV PORT=8080
 ENV BACKEND_URL=http://127.0.0.1:8000
+RUN rm -f /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/build /usr/share/nginx/html
 EXPOSE 8080
 
 HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=5 \
   CMD wget -q -O - "http://127.0.0.1:${PORT:-8080}/health" >/dev/null || exit 1
+
+CMD ["sh", "-c", "envsubst '$PORT $BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]
