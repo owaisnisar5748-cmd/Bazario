@@ -1,0 +1,51 @@
+.app-error {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f4f0e8;
+  color: #161711;
+}
+
+.app-error section {
+  width: min(620px, 100%);
+  padding: clamp(28px, 7vw, 64px);
+  border: 1px solid #161711;
+  background: #fffaf0;
+  box-shadow: 12px 12px 0 rgba(22, 23, 17, 0.12);
+}
+
+.app-error p {
+  color: #e35d3d;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app-error h1 {
+  margin: 12px 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(42px, 8vw, 72px);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+}
+
+.app-error span {
+  display: block;
+  color: #696a61;
+  line-height: 1.7;
+}
+
+.app-error button {
+  min-height: 48px;
+  margin-top: 24px;
+  padding: 0 18px;
+  border: 1px solid #161711;
+  background: #161711;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}

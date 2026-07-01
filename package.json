@@ -1,0 +1,24 @@
+{
+  "name": "bazario",
+  "version": "1.0.0",
+  "description": "E-commerce platform with React frontend and FastAPI backend",
+  "private": true,
+  "scripts": {
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "frontend": "cd frontend && npm start",
+    "backend": "cd backend && python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && pip install -r requirements.txt",
+    "build": "cd frontend && npm run build",
+    "test": "cd frontend && npm test -- --watchAll=false",
+    "verify": "npm run build && npm test",
+    "deploy:check": "python backend/scripts/check_deployment.py --env .env.production",
+    "deploy:config": "docker compose --env-file .env.production -f docker-compose.prod.yml config",
+    "deploy:up": "docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build"
+  },
+  "dependencies": {
+    "lucide-react": "^1.14.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

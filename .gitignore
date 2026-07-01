@@ -1,0 +1,16 @@
+.env
+*.env
+!.env.example
+.env.production
+!.env.production.example
+node_modules/
+frontend/node_modules/
+frontend/build/
+backend/venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+coverage/
+npm-debug.log*
+.DS_Store
