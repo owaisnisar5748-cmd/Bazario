@@ -13,4 +13,6 @@ backend/venv/
 .coverage
 coverage/
 npm-debug.log*
+.npm-cache/
+frontend/.npm-cache/
 .DS_Store

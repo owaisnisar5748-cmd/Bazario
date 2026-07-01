@@ -2,7 +2,7 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install --no-audit --no-fund
 COPY . .
 
 ARG REACT_APP_API_URL=/api
