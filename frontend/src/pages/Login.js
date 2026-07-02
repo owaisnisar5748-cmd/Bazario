@@ -128,7 +128,7 @@ function Login() {
         message:
           error.response?.data?.detail ||
           (statusCode === 502
-            ? "Bazario cannot reach the API service yet. Check the frontend BACKEND_URL or PUBLIC_API_URL setting."
+            ? "Bazario cannot reach the API service yet. Check the frontend BACKEND_URL setting."
             : null) ||
           (statusCode === 405
             ? "Bazario reached the API, but login is not available at that route. Check the frontend backend proxy setting."
