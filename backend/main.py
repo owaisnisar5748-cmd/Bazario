@@ -104,9 +104,6 @@ async def lifespan(app: FastAPI):
     try:
         await asyncio.wait_for(create_database_indexes(), timeout=10)
     except Exception as error:
-        if APP_ENV == "production":
-            logger.exception("Database initialization failed during production startup")
-            raise
         logger.warning("Database indexes could not be initialized during startup: %s", error)
     yield
     client.close()
