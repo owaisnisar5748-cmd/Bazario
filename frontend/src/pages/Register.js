@@ -224,7 +224,7 @@ function Register() {
         type: "error",
         message:
           error.response?.data?.detail ||
-          "Cannot reach the backend server. Start the backend and try again.",
+          "Bazario account creation is temporarily unavailable. Please try again shortly.",
       });
     } finally {
       setLoading(false);

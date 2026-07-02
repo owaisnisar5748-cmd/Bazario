@@ -127,8 +127,8 @@ function Login() {
         message:
           error.response?.data?.detail ||
           (error.code === "ECONNABORTED"
-            ? "The backend took too long to respond. Check the database connection and try again."
-            : "Cannot reach the backend server. Start the backend and try again."),
+            ? "Bazario is taking longer than expected. Please try again in a moment."
+            : "Bazario sign in is temporarily unavailable. Please try again shortly."),
       });
       setLoading(false);
     }

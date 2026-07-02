@@ -2,8 +2,11 @@ import axios from "axios";
 import { getAuthToken, getStoredUser } from "./auth";
 import { clearSession } from "./auth";
 
+const runtimeConfig = window.__BAZARIO_CONFIG__ || {};
+const apiBaseUrl = runtimeConfig.API_URL || process.env.REACT_APP_API_URL || "/api";
+
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "/api",
+  baseURL: apiBaseUrl,
   timeout: Number(process.env.REACT_APP_API_TIMEOUT) || 5000,
   headers: {
     "Content-Type": "application/json",
