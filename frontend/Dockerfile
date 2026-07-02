@@ -17,10 +17,12 @@ ENV BACKEND_URL=
 ENV PUBLIC_API_URL=
 RUN rm -f /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/templates/default.conf.template
+COPY --chown=101:101 docker-entrypoint.sh /usr/local/bin/bazario-frontend-start
 COPY --from=build --chown=101:101 /app/build /usr/share/nginx/html
+RUN chmod +x /usr/local/bin/bazario-frontend-start
 EXPOSE 8080
 
 HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=5 \
   CMD wget -q -O - "http://127.0.0.1:${PORT:-8080}/health" >/dev/null || exit 1
 
-CMD ["sh", "-c", "BACKEND_URL=\"${BACKEND_URL:-$PUBLIC_API_URL}\"; BACKEND_URL=\"${BACKEND_URL:-http://127.0.0.1:8000}\"; export BACKEND_URL; printf 'window.__BAZARIO_CONFIG__ = { API_URL: \"/api\" };\\n' > /usr/share/nginx/html/runtime-config.js && envsubst '$PORT $BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]
+CMD ["bazario-frontend-start"]
