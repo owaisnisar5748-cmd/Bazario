@@ -54,10 +54,8 @@ def main():
 
     if str(values.get("APP_ENV") or "").strip().lower() != "production":
         failures.append("APP_ENV must be production")
-    if not configured(values, "MONGO_INITDB_ROOT_USERNAME", "MONGO_INITDB_ROOT_PASSWORD"):
-        failures.append("MongoDB username and password are required")
-    if len(str(values.get("MONGO_INITDB_ROOT_PASSWORD") or "")) < 16:
-        failures.append("MongoDB password must contain at least 16 characters")
+    if not configured(values, "MONGODB_URL"):
+        failures.append("MONGODB_URL is required. Use a MongoDB Atlas connection string in production")
 
     origins = [
         item.strip()

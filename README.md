@@ -10,7 +10,7 @@ notifications, and dispute management.
 
 - React 18 served by Nginx
 - FastAPI served by Uvicorn
-- MongoDB 8
+- MongoDB Atlas or MongoDB 8
 - JWT authentication
 - Cloudinary product images
 - SMTP or Twilio OTP delivery
@@ -52,7 +52,7 @@ npm run deploy:up
 ```
 
 Only the Nginx frontend is publicly exposed. It proxies `/api` to the private
-backend network, while MongoDB and FastAPI remain internal.
+backend network. For hosted deployment, use MongoDB Atlas for `MONGODB_URL`.
 
 Terminate TLS at your cloud load balancer or HTTPS reverse proxy and forward
 traffic to `HTTP_PORT` (default `80`). Set `ALLOWED_ORIGINS` to the final HTTPS
@@ -61,7 +61,7 @@ frontend origin.
 ## Production Requirements
 
 - A strong JWT `SECRET_KEY`
-- A strong MongoDB root password or a managed MongoDB URI
+- A MongoDB Atlas connection string in `MONGODB_URL`
 - SMTP or Twilio credentials for real OTP delivery
 - Cloudinary credentials for seller image uploads
 - Razorpay credentials for UPI and card payments
