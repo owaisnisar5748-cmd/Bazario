@@ -5,6 +5,8 @@ import { clearSession } from "./auth";
 const runtimeConfig = window.__BAZARIO_CONFIG__ || {};
 const apiBaseUrl = runtimeConfig.API_URL || process.env.REACT_APP_API_URL || "/api";
 
+window.__BAZARIO_API_URL__ = apiBaseUrl;
+
 const API = axios.create({
   baseURL: apiBaseUrl,
   timeout: Number(process.env.REACT_APP_API_TIMEOUT) || 5000,

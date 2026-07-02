@@ -122,10 +122,17 @@ function Login() {
         replace: true,
       });
     } catch (error) {
+      const statusCode = error.response?.status;
       setStatus({
         type: "error",
         message:
           error.response?.data?.detail ||
+          (statusCode === 502
+            ? "Bazario cannot reach the API service yet. Check the frontend BACKEND_URL or PUBLIC_API_URL setting."
+            : null) ||
+          (statusCode
+            ? `Sign in failed with server status ${statusCode}. Please try again shortly.`
+            : null) ||
           (error.code === "ECONNABORTED"
             ? "Bazario is taking longer than expected. Please try again in a moment."
             : "Bazario sign in is temporarily unavailable. Please try again shortly."),
