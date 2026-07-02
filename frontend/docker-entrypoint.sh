@@ -13,8 +13,10 @@ if [ -z "$backend_url" ]; then
 fi
 
 export BACKEND_URL="$backend_url"
+echo "Bazario frontend proxy target: $BACKEND_URL"
 
 printf 'window.__BAZARIO_CONFIG__ = { API_URL: "/api" };\n' > /usr/share/nginx/html/runtime-config.js
 envsubst '$PORT $BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
+grep -n 'proxy_pass' /etc/nginx/conf.d/default.conf
 
 exec nginx -g 'daemon off;'
