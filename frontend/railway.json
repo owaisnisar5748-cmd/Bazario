@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c \"printf 'window.__BAZARIO_CONFIG__ = { API_URL: \\\"%s\\\" };\\\\n' \\\"$PUBLIC_API_URL\\\" > /usr/share/nginx/html/runtime-config.js && envsubst '$PORT $BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'\"",
+    "startCommand": "sh -c \"API_URL=\\\"${PUBLIC_API_URL:-$BACKEND_URL}\\\"; printf 'window.__BAZARIO_CONFIG__ = { API_URL: \\\"%s\\\" };\\\\n' \\\"$API_URL\\\" > /usr/share/nginx/html/runtime-config.js && envsubst '$PORT $BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'\"",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",

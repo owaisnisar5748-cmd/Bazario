@@ -23,4 +23,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=5 \
   CMD wget -q -O - "http://127.0.0.1:${PORT:-8080}/health" >/dev/null || exit 1
 
-CMD ["sh", "-c", "printf 'window.__BAZARIO_CONFIG__ = { API_URL: \"%s\" };\\n' \"$PUBLIC_API_URL\" > /usr/share/nginx/html/runtime-config.js && envsubst '$PORT $BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "API_URL=\"${PUBLIC_API_URL:-$BACKEND_URL}\"; printf 'window.__BAZARIO_CONFIG__ = { API_URL: \"%s\" };\\n' \"$API_URL\" > /usr/share/nginx/html/runtime-config.js && envsubst '$PORT $BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]
