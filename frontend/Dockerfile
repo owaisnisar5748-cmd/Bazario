@@ -19,10 +19,9 @@ RUN rm -f /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY docker-entrypoint.sh /usr/local/bin/bazario-frontend-start
 COPY --from=build --chown=101:101 /app/build /usr/share/nginx/html
-RUN sed -i 's/\r$//' /usr/local/bin/bazario-frontend-start && chmod +x /usr/local/bin/bazario-frontend-start
 EXPOSE 8080
 
 HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=5 \
   CMD wget -q -O - "http://127.0.0.1:${PORT:-8080}/health" >/dev/null || exit 1
 
-CMD ["bazario-frontend-start"]
+CMD ["sh", "/usr/local/bin/bazario-frontend-start"]
