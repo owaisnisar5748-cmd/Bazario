@@ -13,6 +13,7 @@ from app.services.otp_delivery import (
     sms_is_configured,
 )
 from app.services.otp_service import create_otp, invalidate_otp, verify_otp_code
+from app.services.verification_policy import OTP_ALLOW_DEV_CODE, registration_requires_verification
 from app.utils.rate_limiter import enforce_rate_limit
 
 router = APIRouter()
@@ -20,12 +21,6 @@ OTP_SEND_RATE_LIMIT = int(os.getenv("OTP_SEND_RATE_LIMIT", "5"))
 OTP_SEND_RATE_WINDOW_SECONDS = int(os.getenv("OTP_SEND_RATE_WINDOW_SECONDS", "600"))
 OTP_VERIFY_RATE_LIMIT = int(os.getenv("OTP_VERIFY_RATE_LIMIT", "10"))
 OTP_VERIFY_RATE_WINDOW_SECONDS = int(os.getenv("OTP_VERIFY_RATE_WINDOW_SECONDS", "600"))
-APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
-OTP_ALLOW_DEV_CODE = os.getenv(
-    "OTP_ALLOW_DEV_CODE",
-    "true" if APP_ENV != "production" else "false",
-).lower() == "true"
-
 
 class OTPRequest(BaseModel):
     email: EmailStr
@@ -65,6 +60,7 @@ async def get_otp_channels():
             "sms": sms_is_configured(),
         },
         "dev_code_enabled": OTP_ALLOW_DEV_CODE,
+        "registration_requires_verification": registration_requires_verification(),
     }
 
 

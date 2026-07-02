@@ -397,6 +397,17 @@
   line-height: 1.5;
 }
 
+.register-otp__note {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid #518137;
+  background: rgba(81, 129, 55, 0.1);
+  color: #3d612b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
 .register-form__row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

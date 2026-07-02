@@ -20,6 +20,7 @@ from app.services.otp_service import (
     invalidate_otp,
     verify_otp_code,
 )
+from app.services.verification_policy import registration_requires_verification
 from app.utils.auth_handler import get_current_user
 from app.utils.rate_limiter import enforce_rate_limit
 from app.config.security import validate_secret_key
@@ -200,10 +201,14 @@ async def register(user: User, request: Request):
     )
 
     try:
-        verification = await consume_verification(user.username)
-        if not verification:
-            raise HTTPException(status_code=400, detail="Verify your email or phone before registering")
-        if verification.get("channel") == "sms":
+        verification_required = registration_requires_verification()
+        verification = None
+        if verification_required:
+            verification = await consume_verification(user.username)
+            if not verification:
+                raise HTTPException(status_code=400, detail="Verify your email or phone before registering")
+
+        if verification and verification.get("channel") == "sms":
             if not user.phone:
                 raise HTTPException(status_code=400, detail="Use the verified phone number to register")
             try:
@@ -236,6 +241,8 @@ async def register(user: User, request: Request):
             "createdAt": datetime.utcnow(),
             "token_version": 0,
             "seller_onboarding": {},
+            "verification_required": verification_required,
+            "verified_at_signup": bool(verification),
         }
 
         await database.users.insert_one(user_doc)
