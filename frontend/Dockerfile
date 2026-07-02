@@ -17,7 +17,7 @@ ENV BACKEND_URL=http://127.0.0.1:8000
 ENV PUBLIC_API_URL=
 RUN rm -f /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/templates/default.conf.template
-COPY --from=build /app/build /usr/share/nginx/html
+COPY --from=build --chown=101:101 /app/build /usr/share/nginx/html
 EXPOSE 8080
 
 HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=5 \
