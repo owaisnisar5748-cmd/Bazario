@@ -2,8 +2,14 @@ import axios from "axios";
 import { getAuthToken, getStoredUser } from "./auth";
 import { clearSession } from "./auth";
 
+function normalizeApiBaseUrl(value) {
+  const url = String(value || "").trim();
+  if (!url) return "/api";
+  return url.replace(/\/+$/, "").replace(/\/api$/, "");
+}
+
 const runtimeConfig = window.__BAZARIO_CONFIG__ || {};
-const apiBaseUrl = runtimeConfig.API_URL || process.env.REACT_APP_API_URL || "/api";
+const apiBaseUrl = normalizeApiBaseUrl(runtimeConfig.API_URL || process.env.REACT_APP_API_URL);
 
 window.__BAZARIO_API_URL__ = apiBaseUrl;
 
