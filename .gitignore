@@ -15,4 +15,8 @@ coverage/
 npm-debug.log*
 .npm-cache/
 frontend/.npm-cache/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
 .DS_Store

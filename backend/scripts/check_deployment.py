@@ -54,8 +54,8 @@ def main():
 
     if str(values.get("APP_ENV") or "").strip().lower() != "production":
         failures.append("APP_ENV must be production")
-    if not configured(values, "MONGODB_URL"):
-        failures.append("MONGODB_URL is required. Use a MongoDB Atlas connection string in production")
+    if not configured(values, "DATABASE_URL"):
+        failures.append("DATABASE_URL is required. Use sqlite:////data/bazario.db with a Railway volume")
 
     origins = [
         item.strip()

@@ -26,15 +26,8 @@ def main():
     except RuntimeError as error:
         passed &= status("SECRET_KEY", False, str(error))
 
-    mongo_url = (values.get("MONGODB_URL") or "").strip()
-    passed &= status("MONGODB_URL", bool(mongo_url), "configured" if mongo_url else "missing")
-
-    if mongo_url.startswith("mongodb+srv://") and "@" in mongo_url:
-        status(
-            "MongoDB credentials",
-            False,
-            "URI contains credentials; rotate them if this file was ever shared",
-        )
+    database_url = (values.get("DATABASE_URL") or "").strip()
+    passed &= status("DATABASE_URL", bool(database_url), "configured" if database_url else "missing")
 
     mail_ready = all(
         (values.get(key) or "").strip()

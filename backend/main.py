@@ -154,9 +154,9 @@ async def health():
 async def readiness():
     try:
         await asyncio.wait_for(database.command("ping"), timeout=5)
-        return {"status": "ready", "database": "connected"}
+        return {"status": "ready", "database": "sql-connected"}
     except Exception:
-        raise HTTPException(status_code=503, detail="MongoDB connection failed")
+        raise HTTPException(status_code=503, detail="SQL database connection failed")
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(products.router, prefix="/products", tags=["Products"])

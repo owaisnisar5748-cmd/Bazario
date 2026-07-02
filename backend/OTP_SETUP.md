@@ -5,7 +5,7 @@ Bazario supports two registration OTP channels:
 - SMTP email
 - Twilio SMS
 
-OTP values are hashed before being stored in MongoDB. OTP records expire automatically through MongoDB TTL indexes.
+OTP values are hashed before being stored in the SQL document store. Expired OTP records are rejected during verification.
 
 ## Email with Gmail
 

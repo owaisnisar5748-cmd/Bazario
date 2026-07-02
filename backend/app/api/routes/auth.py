@@ -4,10 +4,9 @@ import bcrypt
 from jose import jwt
 from datetime import datetime, timedelta
 from typing import Literal, Optional
-from pymongo.errors import PyMongoError
 import os
 
-from app.db.database import database
+from app.db.database import DatabaseError, database
 from app.services.otp_delivery import (
     OTPDeliveryError,
     email_is_configured,
@@ -253,10 +252,10 @@ async def register(user: User, request: Request):
         }
     except HTTPException:
         raise
-    except PyMongoError:
+    except DatabaseError:
         raise HTTPException(
             status_code=503,
-            detail="Database connection failed. Check MongoDB connection and try again."
+            detail="Database connection failed. Check SQL database connection and try again."
         )
 
 
@@ -277,10 +276,10 @@ async def login(credentials: LoginRequest, request: Request):
         db_user = await database.users.find_one(
             {"username": credentials.username}
         )
-    except PyMongoError:
+    except DatabaseError:
         raise HTTPException(
             status_code=503,
-            detail="Database connection failed. Check MongoDB connection and try again."
+            detail="Database connection failed. Check SQL database connection and try again."
         )
 
     if not db_user:
@@ -342,7 +341,7 @@ async def forgot_password(data: PasswordResetRequest, request: Request):
         raise HTTPException(status_code=429, detail=str(error))
     except HTTPException:
         raise
-    except PyMongoError:
+    except DatabaseError:
         raise HTTPException(status_code=503, detail="Database connection failed. Try again shortly.")
 
     return {

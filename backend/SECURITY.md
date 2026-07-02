@@ -16,4 +16,4 @@ backend\venv\Scripts\python.exe backend\scripts\rotate_secret_key.py
 
 Rotating `SECRET_KEY` invalidates all existing login sessions. Restart the backend afterward.
 
-If a MongoDB URI, mail password, Cloudinary secret, Razorpay secret, or JWT key has ever been exposed, rotate it in the provider dashboard. Editing the local `.env` file alone does not revoke an exposed provider credential.
+If a mail password, Cloudinary secret, Razorpay secret, or JWT key has ever been exposed, rotate it in the provider dashboard. Editing the local `.env` file alone does not revoke an exposed provider credential.

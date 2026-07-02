@@ -27,7 +27,7 @@ class SecurityConfigTests(unittest.TestCase):
 
     def test_rotation_replaces_existing_key_without_changing_other_lines(self):
         lines = [
-            "MONGODB_URL=mongodb://localhost:27017\n",
+            "DATABASE_URL=sqlite:///./bazario.db\n",
             "SECRET_KEY=old-value\n",
             "DATABASE_NAME=bazario\n",
         ]
