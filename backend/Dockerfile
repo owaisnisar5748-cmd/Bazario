@@ -7,6 +7,7 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /app
 
 RUN groupadd --system bazario && useradd --system --gid bazario --home /app bazario
+RUN mkdir -p /data && chown -R bazario:bazario /data /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
