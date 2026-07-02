@@ -133,7 +133,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-ALLOWED_HOSTS = [
+IS_RAILWAY = bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_SERVICE_ID"))
+ALLOWED_HOSTS = ["*"] if IS_RAILWAY else [
     host.strip()
     for host in os.getenv("ALLOWED_HOSTS", "*").split(",")
     if host.strip()
