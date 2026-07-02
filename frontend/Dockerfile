@@ -17,7 +17,7 @@ ENV BACKEND_URL=
 ENV PUBLIC_API_URL=
 RUN rm -f /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/templates/default.conf.template
-COPY --chown=101:101 docker-entrypoint.sh /usr/local/bin/bazario-frontend-start
+COPY docker-entrypoint.sh /usr/local/bin/bazario-frontend-start
 COPY --from=build --chown=101:101 /app/build /usr/share/nginx/html
 RUN sed -i 's/\r$//' /usr/local/bin/bazario-frontend-start && chmod +x /usr/local/bin/bazario-frontend-start
 EXPOSE 8080
