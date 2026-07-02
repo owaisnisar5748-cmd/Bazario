@@ -13,7 +13,7 @@ RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 ENV PORT=8080
-ENV BACKEND_URL=http://127.0.0.1:8000
+ENV BACKEND_URL=
 ENV PUBLIC_API_URL=
 RUN rm -f /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/templates/default.conf.template
@@ -23,4 +23,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=5 \
   CMD wget -q -O - "http://127.0.0.1:${PORT:-8080}/health" >/dev/null || exit 1
 
-CMD ["sh", "-c", "API_URL=\"${PUBLIC_API_URL:-$BACKEND_URL}\"; printf 'window.__BAZARIO_CONFIG__ = { API_URL: \"%s\" };\\n' \"$API_URL\" > /usr/share/nginx/html/runtime-config.js && envsubst '$PORT $BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "BACKEND_URL=\"${BACKEND_URL:-$PUBLIC_API_URL}\"; BACKEND_URL=\"${BACKEND_URL:-http://127.0.0.1:8000}\"; export BACKEND_URL; printf 'window.__BAZARIO_CONFIG__ = { API_URL: \"/api\" };\\n' > /usr/share/nginx/html/runtime-config.js && envsubst '$PORT $BACKEND_URL' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]

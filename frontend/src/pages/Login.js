@@ -131,7 +131,7 @@ function Login() {
             ? "Bazario cannot reach the API service yet. Check the frontend BACKEND_URL or PUBLIC_API_URL setting."
             : null) ||
           (statusCode === 405
-            ? "Bazario reached the wrong API URL. Set PUBLIC_API_URL to the backend service URL, not the frontend URL."
+            ? "Bazario reached the API, but login is not available at that route. Check the frontend backend proxy setting."
             : null) ||
           (statusCode
             ? `Sign in failed with server status ${statusCode}. Please try again shortly.`
