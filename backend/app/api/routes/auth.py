@@ -378,7 +378,7 @@ async def reset_password(data: PasswordResetConfirm, request: Request):
                 "$inc": {"token_version": 1},
             }
         )
-    except PyMongoError:
+    except DatabaseError:
         raise HTTPException(status_code=503, detail="Database connection failed. Try again shortly.")
 
     if result.matched_count == 0:

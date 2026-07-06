@@ -170,23 +170,29 @@ class SQLCollection:
         self.name = name
 
     def _all(self):
-        rows = self.db.connection.execute(
-            "SELECT data FROM documents WHERE collection = ?",
-            (self.name,),
-        ).fetchall()
-        return [json.loads(row["data"], object_hook=_json_object_hook) for row in rows]
+        try:
+            rows = self.db.connection.execute(
+                "SELECT data FROM documents WHERE collection = ?",
+                (self.name,),
+            ).fetchall()
+            return [json.loads(row["data"], object_hook=_json_object_hook) for row in rows]
+        except sqlite3.Error as error:
+            raise DatabaseError(str(error)) from error
 
     def _save(self, document):
         document = _normalize(document)
-        self.db.connection.execute(
-            """
-            INSERT INTO documents (collection, id, data)
-            VALUES (?, ?, ?)
-            ON CONFLICT(collection, id) DO UPDATE SET data = excluded.data
-            """,
-            (self.name, str(document["_id"]), json.dumps(document, default=_json_default)),
-        )
-        self.db.connection.commit()
+        try:
+            self.db.connection.execute(
+                """
+                INSERT INTO documents (collection, id, data)
+                VALUES (?, ?, ?)
+                ON CONFLICT(collection, id) DO UPDATE SET data = excluded.data
+                """,
+                (self.name, str(document["_id"]), json.dumps(document, default=_json_default)),
+            )
+            self.db.connection.commit()
+        except sqlite3.Error as error:
+            raise DatabaseError(str(error)) from error
 
     async def insert_one(self, document):
         document = _normalize(copy.deepcopy(document))
@@ -266,11 +272,14 @@ class SQLCollection:
         deleted = 0
         for document in self._all():
             if _matches(document, _normalize(query or {})):
-                self.db.connection.execute(
-                    "DELETE FROM documents WHERE collection = ? AND id = ?",
-                    (self.name, str(document["_id"])),
-                )
-                self.db.connection.commit()
+                try:
+                    self.db.connection.execute(
+                        "DELETE FROM documents WHERE collection = ? AND id = ?",
+                        (self.name, str(document["_id"])),
+                    )
+                    self.db.connection.commit()
+                except sqlite3.Error as error:
+                    raise DatabaseError(str(error)) from error
                 deleted = 1
                 break
         return SimpleNamespace(deleted_count=deleted)
@@ -279,12 +288,18 @@ class SQLCollection:
         deleted = 0
         for document in self._all():
             if _matches(document, _normalize(query or {})):
-                self.db.connection.execute(
-                    "DELETE FROM documents WHERE collection = ? AND id = ?",
-                    (self.name, str(document["_id"])),
-                )
+                try:
+                    self.db.connection.execute(
+                        "DELETE FROM documents WHERE collection = ? AND id = ?",
+                        (self.name, str(document["_id"])),
+                    )
+                except sqlite3.Error as error:
+                    raise DatabaseError(str(error)) from error
                 deleted += 1
-        self.db.connection.commit()
+        try:
+            self.db.connection.commit()
+        except sqlite3.Error as error:
+            raise DatabaseError(str(error)) from error
         return SimpleNamespace(deleted_count=deleted)
 
     async def find_one_and_delete(self, query):
@@ -306,19 +321,22 @@ class SQLCollection:
 class SQLDatabase:
     def __init__(self):
         self.path = _database_path()
-        self.connection = sqlite3.connect(self.path, check_same_thread=False)
-        self.connection.row_factory = sqlite3.Row
-        self.connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS documents (
-                collection TEXT NOT NULL,
-                id TEXT NOT NULL,
-                data TEXT NOT NULL,
-                PRIMARY KEY (collection, id)
+        try:
+            self.connection = sqlite3.connect(self.path, check_same_thread=False)
+            self.connection.row_factory = sqlite3.Row
+            self.connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS documents (
+                    collection TEXT NOT NULL,
+                    id TEXT NOT NULL,
+                    data TEXT NOT NULL,
+                    PRIMARY KEY (collection, id)
+                )
+                """
             )
-            """
-        )
-        self.connection.commit()
+            self.connection.commit()
+        except sqlite3.Error as error:
+            raise DatabaseError(str(error)) from error
 
     def __getattr__(self, name):
         collection = SQLCollection(self, name)
@@ -328,7 +346,10 @@ class SQLDatabase:
     async def command(self, command_name):
         if command_name != "ping":
             return {"ok": 1}
-        self.connection.execute("SELECT 1").fetchone()
+        try:
+            self.connection.execute("SELECT 1").fetchone()
+        except sqlite3.Error as error:
+            raise DatabaseError(str(error)) from error
         return {"ok": 1}
 
 
