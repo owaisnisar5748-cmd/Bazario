@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import re
 import sqlite3
@@ -19,16 +20,17 @@ except ImportError:
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BACKEND_DIR / ".env")
+logger = logging.getLogger("bazario.database")
 
 
 class DatabaseError(Exception):
     pass
 
 
-def _database_path() -> Path:
+def _database_path(raw_url: str | None = None) -> Path:
     app_env = os.getenv("APP_ENV", "development").strip().lower()
     default_url = "sqlite:////data/bazario.db" if app_env == "production" else "sqlite:///./bazario.db"
-    raw_url = os.getenv("DATABASE_URL") or os.getenv("SQL_DATABASE_URL") or default_url
+    raw_url = raw_url or os.getenv("DATABASE_URL") or os.getenv("SQL_DATABASE_URL") or default_url
     if raw_url.startswith("sqlite:///"):
         path = raw_url.replace("sqlite:///", "", 1)
     else:
@@ -49,6 +51,11 @@ def _database_url() -> str:
         or os.getenv("SQL_DATABASE_URL")
         or default_url
     )
+
+
+def _sqlite_fallback_url() -> str:
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    return "sqlite:////data/bazario.db" if app_env == "production" else "sqlite:///./bazario.db"
 
 
 def _mysql_config(raw_url: str):
@@ -367,9 +374,26 @@ class SQLCollection:
 class SQLDatabase:
     def __init__(self):
         self.raw_url = _database_url()
+        self.fallback_reason = ""
+        try:
+            self._connect(self.raw_url)
+        except Exception as error:
+            fallback_url = _sqlite_fallback_url()
+            if self.raw_url == fallback_url:
+                raise
+            self.fallback_reason = str(error)
+            logger.warning(
+                "Configured database failed; falling back to SQLite at %s: %s",
+                fallback_url,
+                error,
+            )
+            self._connect(fallback_url)
+
+    def _connect(self, raw_url):
+        self.raw_url = raw_url
         self.engine = "mysql" if self.raw_url.startswith(("mysql://", "mysql+pymysql://")) else "sqlite"
         self.placeholder = "%s" if self.engine == "mysql" else "?"
-        self.path = None if self.engine == "mysql" else _database_path()
+        self.path = None if self.engine == "mysql" else _database_path(self.raw_url)
         self.error_classes = (sqlite3.Error,)
         if self.engine == "mysql":
             if pymysql is None:
