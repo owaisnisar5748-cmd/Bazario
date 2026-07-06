@@ -14,8 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=bazario:bazario . .
 
-USER bazario
-
 EXPOSE 8000
 
 HEALTHCHECK --interval=20s --timeout=5s --start-period=20s --retries=5 \
