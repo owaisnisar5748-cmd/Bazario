@@ -210,8 +210,10 @@ class SQLCollection:
         document = _normalize(copy.deepcopy(document))
         if existing:
             document["_id"] = existing["_id"]
-        else:
+        elif upsert:
             document.setdefault("_id", query.get("_id") or str(ObjectId()))
+        else:
+            return SimpleNamespace(matched_count=0, modified_count=0, upserted_id=None)
         self._save(document)
         return SimpleNamespace(matched_count=1 if existing else 0, modified_count=1, upserted_id=document["_id"])
 
@@ -232,13 +234,13 @@ class SQLCollection:
     async def count_documents(self, query=None):
         return len([document for document in self._all() if _matches(document, _normalize(query or {}))])
 
-    async def update_one(self, query, update, array_filters=None):
-        return await self._update(query, update, first_only=True)
+    async def update_one(self, query, update, array_filters=None, upsert=False):
+        return await self._update(query, update, first_only=True, upsert=upsert)
 
-    async def update_many(self, query, update):
-        return await self._update(query, update, first_only=False)
+    async def update_many(self, query, update, upsert=False):
+        return await self._update(query, update, first_only=False, upsert=upsert)
 
-    async def _update(self, query, update, first_only):
+    async def _update(self, query, update, first_only, upsert=False):
         matched = 0
         modified = 0
         for document in self._all():
@@ -252,7 +254,19 @@ class SQLCollection:
                 self._save(document)
             if first_only:
                 break
-        return SimpleNamespace(matched_count=matched, modified_count=modified)
+        upserted_id = None
+        if matched == 0 and upsert:
+            document = {
+                key: _normalize(value)
+                for key, value in (query or {}).items()
+                if not key.startswith("$") and not isinstance(value, dict)
+            }
+            document.setdefault("_id", str(ObjectId()))
+            self._apply_update(document, update)
+            self._save(document)
+            modified = 1
+            upserted_id = document["_id"]
+        return SimpleNamespace(matched_count=matched, modified_count=modified, upserted_id=upserted_id)
 
     def _apply_update(self, document, update):
         if not any(str(key).startswith("$") for key in update):

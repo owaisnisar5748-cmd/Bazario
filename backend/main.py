@@ -18,6 +18,7 @@ validate_security_config()
 
 from app.api.routes import auth, products, otp, payment, address, reviews, wishlist, admin, cart, orders, prescriptions, notifications, support
 from app.db.database import client, database
+from scripts.seed_demo_products import seed_products
 
 logger = logging.getLogger("bazario")
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
@@ -99,12 +100,23 @@ async def create_database_indexes():
     await database.otp_verifications.create_index("expires_at", expireAfterSeconds=0)
 
 
+async def seed_demo_catalog_if_enabled():
+    enabled = os.getenv("SEED_DEMO_PRODUCTS", "true").strip().lower()
+    if enabled in {"0", "false", "no", "off"}:
+        return
+    await seed_products()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
         await asyncio.wait_for(create_database_indexes(), timeout=10)
     except Exception as error:
         logger.warning("Database indexes could not be initialized during startup: %s", error)
+    try:
+        await asyncio.wait_for(seed_demo_catalog_if_enabled(), timeout=15)
+    except Exception as error:
+        logger.warning("Demo products could not be seeded during startup: %s", error)
     yield
     client.close()
 
