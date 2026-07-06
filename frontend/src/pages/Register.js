@@ -220,10 +220,20 @@ function Register() {
         navigate("/login");
       }, 900);
     } catch (error) {
+      const statusCode = error.response?.status;
       setStatus({
         type: "error",
         message:
           error.response?.data?.detail ||
+          (statusCode === 502
+            ? "Bazario cannot reach the API service yet. Check the frontend BACKEND_URL setting."
+            : null) ||
+          (statusCode === 405
+            ? "Bazario reached the API, but registration is not available at that route. Check the frontend backend proxy setting."
+            : null) ||
+          (statusCode
+            ? `Account creation failed with server status ${statusCode}. Please try again shortly.`
+            : null) ||
           "Bazario account creation is temporarily unavailable. Please try again shortly.",
       });
     } finally {

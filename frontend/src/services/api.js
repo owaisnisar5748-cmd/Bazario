@@ -2,7 +2,30 @@ import axios from "axios";
 import { getAuthToken, getStoredUser } from "./auth";
 import { clearSession } from "./auth";
 
-const apiBaseUrl = process.env.REACT_APP_API_URL || "/api";
+function resolveApiBaseUrl() {
+  const configuredUrl = (process.env.REACT_APP_API_URL || "").trim();
+  const browserHost = window.location.hostname;
+  const isLocalBrowser =
+    browserHost === "localhost" ||
+    browserHost === "127.0.0.1" ||
+    browserHost === "";
+
+  if (
+    configuredUrl &&
+    !configuredUrl.includes("127.0.0.1") &&
+    !configuredUrl.includes("localhost")
+  ) {
+    return configuredUrl.replace(/\/$/, "");
+  }
+
+  if (configuredUrl && isLocalBrowser) {
+    return configuredUrl.replace(/\/$/, "");
+  }
+
+  return "/api";
+}
+
+const apiBaseUrl = resolveApiBaseUrl();
 
 window.__BAZARIO_API_URL__ = apiBaseUrl;
 
