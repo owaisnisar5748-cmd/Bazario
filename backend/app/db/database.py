@@ -46,7 +46,6 @@ def _database_url() -> str:
     default_url = "sqlite:////data/bazario.db" if app_env == "production" else "sqlite:///./bazario.db"
     return (
         os.getenv("DATABASE_URL")
-        or os.getenv("MYSQL_URL")
         or os.getenv("SQL_DATABASE_URL")
         or default_url
     )

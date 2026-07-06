@@ -54,8 +54,8 @@ def main():
 
     if str(values.get("APP_ENV") or "").strip().lower() != "production":
         failures.append("APP_ENV must be production")
-    if not configured(values, "DATABASE_URL") and not configured(values, "MYSQL_URL"):
-        failures.append("DATABASE_URL or MYSQL_URL is required. Use mysql://user:password@host:3306/database for MySQL")
+    if not configured(values, "DATABASE_URL"):
+        failures.append("DATABASE_URL is required. Use sqlite:////data/bazario.db or mysql://user:password@host:3306/database")
 
     origins = [
         item.strip()
