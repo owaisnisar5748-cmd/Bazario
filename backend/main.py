@@ -166,7 +166,11 @@ async def health():
 async def readiness():
     try:
         await asyncio.wait_for(database.command("ping"), timeout=5)
-        return {"status": "ready", "database": "sql-connected"}
+        return {
+            "status": "ready",
+            "database": "sql-connected",
+            "database_path": str(database.path),
+        }
     except Exception:
         raise HTTPException(status_code=503, detail="SQL database connection failed")
 

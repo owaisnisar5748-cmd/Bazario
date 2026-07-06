@@ -21,7 +21,9 @@ class DatabaseError(Exception):
 
 
 def _database_path() -> Path:
-    raw_url = os.getenv("DATABASE_URL") or os.getenv("SQL_DATABASE_URL") or "sqlite:///./bazario.db"
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    default_url = "sqlite:////data/bazario.db" if app_env == "production" else "sqlite:///./bazario.db"
+    raw_url = os.getenv("DATABASE_URL") or os.getenv("SQL_DATABASE_URL") or default_url
     if raw_url.startswith("sqlite:///"):
         path = raw_url.replace("sqlite:///", "", 1)
     else:
