@@ -11,6 +11,11 @@ from urllib.parse import urlparse
 from bson import ObjectId
 from dotenv import load_dotenv
 
+try:
+    import pymysql
+except ImportError:
+    pymysql = None
+
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BACKEND_DIR / ".env")
@@ -34,6 +39,26 @@ def _database_path() -> Path:
         db_path = BACKEND_DIR / db_path
     db_path.parent.mkdir(parents=True, exist_ok=True)
     return db_path
+
+
+def _database_url() -> str:
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    default_url = "sqlite:////data/bazario.db" if app_env == "production" else "sqlite:///./bazario.db"
+    return os.getenv("DATABASE_URL") or os.getenv("SQL_DATABASE_URL") or default_url
+
+
+def _mysql_config(raw_url: str):
+    parsed = urlparse(raw_url)
+    database_name = parsed.path.lstrip("/") or os.getenv("MYSQLDATABASE") or "bazario"
+    return {
+        "host": parsed.hostname or os.getenv("MYSQLHOST", "localhost"),
+        "port": parsed.port or int(os.getenv("MYSQLPORT", "3306")),
+        "user": parsed.username or os.getenv("MYSQLUSER", "root"),
+        "password": parsed.password or os.getenv("MYSQLPASSWORD", ""),
+        "database": database_name,
+        "charset": "utf8mb4",
+        "autocommit": False,
+    }
 
 
 def _json_default(value):
@@ -178,27 +203,23 @@ class SQLCollection:
 
     def _all(self):
         try:
-            rows = self.db.connection.execute(
-                "SELECT data FROM documents WHERE collection = ?",
+            rows = self.db.fetchall(
+                "SELECT data FROM documents WHERE collection = {placeholder}",
                 (self.name,),
-            ).fetchall()
+            )
             return [json.loads(row["data"], object_hook=_json_object_hook) for row in rows]
-        except sqlite3.Error as error:
+        except self.db.error_classes as error:
             raise DatabaseError(str(error)) from error
 
     def _save(self, document):
         document = _normalize(document)
         try:
-            self.db.connection.execute(
-                """
-                INSERT INTO documents (collection, id, data)
-                VALUES (?, ?, ?)
-                ON CONFLICT(collection, id) DO UPDATE SET data = excluded.data
-                """,
+            self.db.execute(
+                self.db.upsert_sql,
                 (self.name, str(document["_id"]), json.dumps(document, default=_json_default)),
             )
-            self.db.connection.commit()
-        except sqlite3.Error as error:
+            self.db.commit()
+        except self.db.error_classes as error:
             raise DatabaseError(str(error)) from error
 
     async def insert_one(self, document):
@@ -294,12 +315,12 @@ class SQLCollection:
         for document in self._all():
             if _matches(document, _normalize(query or {})):
                 try:
-                    self.db.connection.execute(
-                        "DELETE FROM documents WHERE collection = ? AND id = ?",
+                    self.db.execute(
+                        "DELETE FROM documents WHERE collection = {placeholder} AND id = {placeholder}",
                         (self.name, str(document["_id"])),
                     )
-                    self.db.connection.commit()
-                except sqlite3.Error as error:
+                    self.db.commit()
+                except self.db.error_classes as error:
                     raise DatabaseError(str(error)) from error
                 deleted = 1
                 break
@@ -310,16 +331,16 @@ class SQLCollection:
         for document in self._all():
             if _matches(document, _normalize(query or {})):
                 try:
-                    self.db.connection.execute(
-                        "DELETE FROM documents WHERE collection = ? AND id = ?",
+                    self.db.execute(
+                        "DELETE FROM documents WHERE collection = {placeholder} AND id = {placeholder}",
                         (self.name, str(document["_id"])),
                     )
-                except sqlite3.Error as error:
+                except self.db.error_classes as error:
                     raise DatabaseError(str(error)) from error
                 deleted += 1
         try:
-            self.db.connection.commit()
-        except sqlite3.Error as error:
+            self.db.commit()
+        except self.db.error_classes as error:
             raise DatabaseError(str(error)) from error
         return SimpleNamespace(deleted_count=deleted)
 
@@ -341,23 +362,89 @@ class SQLCollection:
 
 class SQLDatabase:
     def __init__(self):
-        self.path = _database_path()
+        self.raw_url = _database_url()
+        self.engine = "mysql" if self.raw_url.startswith(("mysql://", "mysql+pymysql://")) else "sqlite"
+        self.placeholder = "%s" if self.engine == "mysql" else "?"
+        self.path = None if self.engine == "mysql" else _database_path()
+        self.error_classes = (sqlite3.Error,)
+        if self.engine == "mysql":
+            if pymysql is None:
+                raise DatabaseError("PyMySQL is required for MySQL DATABASE_URL")
+            self.error_classes = (pymysql.MySQLError,)
         try:
-            self.connection = sqlite3.connect(self.path, check_same_thread=False)
-            self.connection.row_factory = sqlite3.Row
-            self.connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS documents (
-                    collection TEXT NOT NULL,
-                    id TEXT NOT NULL,
-                    data TEXT NOT NULL,
-                    PRIMARY KEY (collection, id)
+            if self.engine == "mysql":
+                self.connection = pymysql.connect(
+                    **_mysql_config(self.raw_url),
+                    cursorclass=pymysql.cursors.DictCursor,
                 )
+                create_sql = """
+                    CREATE TABLE IF NOT EXISTS documents (
+                        collection VARCHAR(80) NOT NULL,
+                        id VARCHAR(120) NOT NULL,
+                        data JSON NOT NULL,
+                        PRIMARY KEY (collection, id)
+                    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
                 """
-            )
-            self.connection.commit()
-        except sqlite3.Error as error:
+                self.upsert_sql = """
+                    INSERT INTO documents (collection, id, data)
+                    VALUES ({placeholder}, {placeholder}, {placeholder})
+                    ON DUPLICATE KEY UPDATE data = VALUES(data)
+                """
+            else:
+                self.connection = sqlite3.connect(self.path, check_same_thread=False)
+                self.connection.row_factory = sqlite3.Row
+                create_sql = """
+                    CREATE TABLE IF NOT EXISTS documents (
+                        collection TEXT NOT NULL,
+                        id TEXT NOT NULL,
+                        data TEXT NOT NULL,
+                        PRIMARY KEY (collection, id)
+                    )
+                """
+                self.upsert_sql = """
+                    INSERT INTO documents (collection, id, data)
+                    VALUES ({placeholder}, {placeholder}, {placeholder})
+                    ON CONFLICT(collection, id) DO UPDATE SET data = excluded.data
+                """
+            self.execute(create_sql)
+            if self.engine == "mysql":
+                self.execute(
+                    """
+                    CREATE OR REPLACE VIEW users_view AS
+                    SELECT
+                        id,
+                        JSON_UNQUOTE(JSON_EXTRACT(data, '$.username')) AS email,
+                        JSON_UNQUOTE(JSON_EXTRACT(data, '$.firstName')) AS first_name,
+                        JSON_UNQUOTE(JSON_EXTRACT(data, '$.lastName')) AS last_name,
+                        JSON_UNQUOTE(JSON_EXTRACT(data, '$.role')) AS role,
+                        JSON_UNQUOTE(JSON_EXTRACT(data, '$.phone')) AS phone,
+                        JSON_UNQUOTE(JSON_EXTRACT(data, '$.gender')) AS gender,
+                        JSON_UNQUOTE(JSON_EXTRACT(data, '$.createdAt')) AS created_at
+                    FROM documents
+                    WHERE collection = 'users'
+                    """
+                )
+            self.commit()
+        except self.error_classes as error:
             raise DatabaseError(str(error)) from error
+
+    def sql(self, statement):
+        return statement.format(placeholder=self.placeholder)
+
+    def execute(self, statement, params=()):
+        cursor = self.connection.cursor()
+        cursor.execute(self.sql(statement), params)
+        return cursor
+
+    def fetchall(self, statement, params=()):
+        cursor = self.execute(statement, params)
+        rows = cursor.fetchall()
+        if self.engine == "sqlite":
+            return [dict(row) for row in rows]
+        return rows
+
+    def commit(self):
+        self.connection.commit()
 
     def __getattr__(self, name):
         collection = SQLCollection(self, name)
@@ -368,8 +455,8 @@ class SQLDatabase:
         if command_name != "ping":
             return {"ok": 1}
         try:
-            self.connection.execute("SELECT 1").fetchone()
-        except sqlite3.Error as error:
+            self.execute("SELECT 1").fetchone()
+        except self.error_classes as error:
             raise DatabaseError(str(error)) from error
         return {"ok": 1}
 

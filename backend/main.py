@@ -169,7 +169,8 @@ async def readiness():
         return {
             "status": "ready",
             "database": "sql-connected",
-            "database_path": str(database.path),
+            "database_engine": database.engine,
+            "database_target": str(database.path) if database.path else "mysql",
         }
     except Exception:
         raise HTTPException(status_code=503, detail="SQL database connection failed")
