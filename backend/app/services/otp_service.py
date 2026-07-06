@@ -25,6 +25,11 @@ def _record_id(identity: str, purpose: str) -> str:
 def _as_utc(value: datetime | None):
     if value is None:
         return None
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value)
+        except ValueError:
+            return None
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 
 

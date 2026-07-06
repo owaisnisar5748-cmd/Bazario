@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import urlparse
@@ -34,12 +35,16 @@ def _database_path() -> Path:
 
 
 def _json_default(value):
+    if isinstance(value, datetime):
+        return {"__datetime__": value.isoformat()}
     if isinstance(value, bytes):
         return {"__bytes__": value.hex()}
     return str(value)
 
 
 def _json_object_hook(value):
+    if "__datetime__" in value:
+        return datetime.fromisoformat(value["__datetime__"])
     if "__bytes__" in value:
         return bytes.fromhex(value["__bytes__"])
     return value
