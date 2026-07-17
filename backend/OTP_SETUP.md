@@ -7,6 +7,8 @@ Bazario supports two registration OTP channels:
 
 OTP values are hashed before being stored in the SQL document store. Expired OTP records are rejected during verification.
 
+In production, Bazario requires real OTP verification. Development response codes are ignored when `APP_ENV=production`, even if `OTP_ALLOW_DEV_CODE=true` is accidentally set.
+
 ## Email with Gmail
 
 1. Enable 2-Step Verification on the Google account.
@@ -53,3 +55,5 @@ Restart the backend after changing `.env`, then audit configuration:
 ```powershell
 backend\venv\Scripts\python.exe backend\scripts\audit_secrets.py
 ```
+
+For Railway, add the same variables in the backend service Variables tab, then redeploy the backend.

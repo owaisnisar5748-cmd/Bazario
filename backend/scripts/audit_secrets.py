@@ -28,6 +28,10 @@ def main():
 
     database_url = (values.get("DATABASE_URL") or "").strip()
     passed &= status("DATABASE_URL", bool(database_url), "configured" if database_url else "missing")
+    app_env = (values.get("APP_ENV") or "development").strip().lower()
+    dev_otp_enabled = (values.get("OTP_ALLOW_DEV_CODE") or "").strip().lower() == "true"
+    if app_env == "production" and dev_otp_enabled:
+        passed &= status("OTP_ALLOW_DEV_CODE", False, "must be false in production")
 
     mail_ready = all(
         (values.get(key) or "").strip()
@@ -40,6 +44,8 @@ def main():
         for key in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER")
     )
     status("Phone OTP delivery", sms_ready, "configured" if sms_ready else "Twilio credentials required")
+    if app_env == "production" and not (mail_ready or sms_ready):
+        passed &= status("Production OTP", False, "configure SMTP email or Twilio SMS before launch")
 
     cloudinary_ready = all(
         (values.get(key) or "").strip()
