@@ -39,13 +39,8 @@ def main():
     )
     status("Email OTP delivery", mail_ready, "configured" if mail_ready else "SMTP credentials required")
 
-    sms_ready = all(
-        (values.get(key) or "").strip()
-        for key in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER")
-    )
-    status("Phone OTP delivery", sms_ready, "configured" if sms_ready else "Twilio credentials required")
-    if app_env == "production" and not (mail_ready or sms_ready):
-        passed &= status("Production OTP", False, "configure SMTP email or Twilio SMS before launch")
+    if app_env == "production" and not mail_ready:
+        passed &= status("Production OTP", False, "configure SMTP email before launch")
 
     cloudinary_ready = all(
         (values.get(key) or "").strip()

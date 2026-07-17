@@ -28,20 +28,12 @@ class VerificationPolicyTests(unittest.TestCase):
 
     def test_production_auto_requires_verification(self):
         policy = self.reload_policy(APP_ENV="production", REGISTRATION_REQUIRE_VERIFICATION="auto")
-        with patch.object(policy, "email_is_configured", return_value=False), patch.object(
-            policy,
-            "sms_is_configured",
-            return_value=False,
-        ):
+        with patch.object(policy, "email_is_configured", return_value=False):
             self.assertTrue(policy.registration_requires_verification())
 
     def test_development_auto_uses_available_channels(self):
         policy = self.reload_policy(APP_ENV="development", REGISTRATION_REQUIRE_VERIFICATION="auto")
-        with patch.object(policy, "email_is_configured", return_value=False), patch.object(
-            policy,
-            "sms_is_configured",
-            return_value=False,
-        ):
+        with patch.object(policy, "email_is_configured", return_value=False):
             self.assertEqual(policy.registration_requires_verification(), policy.OTP_ALLOW_DEV_CODE)
 
 

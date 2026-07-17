@@ -10,7 +10,6 @@ from app.db.database import DatabaseError, database
 from app.services.otp_delivery import (
     OTPDeliveryError,
     email_is_configured,
-    normalize_phone,
     send_email_otp,
 )
 from app.services.otp_service import (
@@ -206,16 +205,6 @@ async def register(user: User, request: Request):
             verification = await consume_verification(user.username)
             if not verification:
                 raise HTTPException(status_code=400, detail="Verify your email or phone before registering")
-
-        if verification and verification.get("channel") == "sms":
-            if not user.phone:
-                raise HTTPException(status_code=400, detail="Use the verified phone number to register")
-            try:
-                submitted_phone = normalize_phone(user.phone)
-            except ValueError as error:
-                raise HTTPException(status_code=400, detail=str(error))
-            if submitted_phone != verification.get("destination"):
-                raise HTTPException(status_code=400, detail="Use the verified phone number to register")
 
         # check existing user
         existing_user = await database.users.find_one(

@@ -79,14 +79,8 @@ def main():
         "MAIL_FROM",
         "MAIL_SERVER",
     )
-    sms_ready = configured(
-        values,
-        "TWILIO_ACCOUNT_SID",
-        "TWILIO_AUTH_TOKEN",
-        "TWILIO_FROM_NUMBER",
-    )
-    if not email_ready and not sms_ready:
-        failures.append("Configure SMTP or Twilio for OTP delivery")
+    if not email_ready:
+        failures.append("Configure SMTP MAIL_* variables for email OTP delivery")
     if not configured(
         values,
         "CLOUDINARY_CLOUD_NAME",

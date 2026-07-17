@@ -7,7 +7,6 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services import otp_service
-from app.services.otp_delivery import normalize_phone
 
 
 class FakeCollection:
@@ -43,25 +42,14 @@ class FakeDatabase:
 
 
 class OTPSystemTests(unittest.IsolatedAsyncioTestCase):
-    def test_normalizes_local_indian_phone(self):
-        with patch.dict("os.environ", {"DEFAULT_PHONE_COUNTRY_CODE": "+91"}):
-            self.assertEqual(normalize_phone("98765 43210"), "+919876543210")
-
-    def test_accepts_e164_phone(self):
-        self.assertEqual(normalize_phone("+1 415 555 2671"), "+14155552671")
-
-    def test_rejects_invalid_phone(self):
-        with self.assertRaises(ValueError):
-            normalize_phone("123")
-
     async def test_otp_is_hashed_and_can_be_consumed_after_verification(self):
         fake_database = FakeDatabase()
 
         with patch.object(otp_service, "database", fake_database):
             otp = await otp_service.create_otp(
                 "user@example.com",
-                channel="sms",
-                destination="+919876543210",
+                channel="email",
+                destination="user@example.com",
             )
             stored = fake_database.otp_codes.records["registration:user@example.com"]
 
@@ -71,14 +59,14 @@ class OTPSystemTests(unittest.IsolatedAsyncioTestCase):
             verified = await otp_service.verify_otp_code(
                 "user@example.com",
                 otp,
-                channel="sms",
-                destination="+919876543210",
+                channel="email",
+                destination="user@example.com",
             )
             verification = await otp_service.consume_verification("user@example.com")
 
         self.assertTrue(verified)
-        self.assertEqual(verification["channel"], "sms")
-        self.assertEqual(verification["destination"], "+919876543210")
+        self.assertEqual(verification["channel"], "email")
+        self.assertEqual(verification["destination"], "user@example.com")
 
     async def test_wrong_destination_does_not_verify(self):
         fake_database = FakeDatabase()
@@ -86,14 +74,14 @@ class OTPSystemTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(otp_service, "database", fake_database):
             otp = await otp_service.create_otp(
                 "user@example.com",
-                channel="sms",
-                destination="+919876543210",
+                channel="email",
+                destination="user@example.com",
             )
             verified = await otp_service.verify_otp_code(
                 "user@example.com",
                 otp,
-                channel="sms",
-                destination="+919999999999",
+                channel="email",
+                destination="other@example.com",
             )
 
         self.assertFalse(verified)

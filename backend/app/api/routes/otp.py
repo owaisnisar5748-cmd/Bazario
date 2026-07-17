@@ -7,10 +7,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from app.services.otp_delivery import (
     OTPDeliveryError,
     email_is_configured,
-    normalize_phone,
     send_email_otp,
-    send_sms_otp,
-    sms_is_configured,
 )
 from app.services.otp_service import create_otp, invalidate_otp, verify_otp_code
 from app.services.verification_policy import OTP_ALLOW_DEV_CODE, registration_requires_verification
@@ -24,7 +21,7 @@ OTP_VERIFY_RATE_WINDOW_SECONDS = int(os.getenv("OTP_VERIFY_RATE_WINDOW_SECONDS",
 
 class OTPRequest(BaseModel):
     email: EmailStr
-    channel: Literal["email", "sms"] = "email"
+    channel: Literal["email"] = "email"
     phone: str = Field(default="", max_length=20)
 
     @field_validator("email")
@@ -38,14 +35,7 @@ class VerifyOTP(OTPRequest):
 
 
 def get_destination(data: OTPRequest) -> str:
-    if data.channel == "email":
-        return str(data.email)
-    if not data.phone:
-        raise HTTPException(status_code=400, detail="Phone number is required for SMS OTP")
-    try:
-        return normalize_phone(data.phone)
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error))
+    return str(data.email)
 
 
 @router.get("/channels")
@@ -53,11 +43,9 @@ async def get_otp_channels():
     return {
         "channels": {
             "email": email_is_configured() or OTP_ALLOW_DEV_CODE,
-            "sms": sms_is_configured() or OTP_ALLOW_DEV_CODE,
         },
         "delivery_configured": {
             "email": email_is_configured(),
-            "sms": sms_is_configured(),
         },
         "dev_code_enabled": OTP_ALLOW_DEV_CODE,
         "registration_requires_verification": registration_requires_verification(),
@@ -77,8 +65,6 @@ async def send_otp(data: OTPRequest, request: Request):
 
     if data.channel == "email" and not email_is_configured() and not OTP_ALLOW_DEV_CODE:
         raise HTTPException(status_code=503, detail="Email OTP delivery is not configured")
-    if data.channel == "sms" and not sms_is_configured() and not OTP_ALLOW_DEV_CODE:
-        raise HTTPException(status_code=503, detail="Phone OTP delivery is not configured")
 
     try:
         otp = await create_otp(
@@ -88,20 +74,14 @@ async def send_otp(data: OTPRequest, request: Request):
             destination=destination,
         )
 
-        if OTP_ALLOW_DEV_CODE and (
-            (data.channel == "email" and not email_is_configured())
-            or (data.channel == "sms" and not sms_is_configured())
-        ):
+        if OTP_ALLOW_DEV_CODE and not email_is_configured():
             return {
                 "message": "Development OTP generated.",
                 "channel": data.channel,
                 "dev_otp": otp,
             }
 
-        if data.channel == "email":
-            await send_email_otp(destination, otp)
-        else:
-            await send_sms_otp(destination, otp)
+        await send_email_otp(destination, otp)
     except ValueError as error:
         raise HTTPException(status_code=429, detail=str(error))
     except OTPDeliveryError as error:

@@ -45,8 +45,7 @@ function Register() {
   const [enteredOtp, setEnteredOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
-  const [otpChannel, setOtpChannel] = useState("email");
-  const [otpChannels, setOtpChannels] = useState({ email: false, sms: false });
+  const [emailOtpAvailable, setEmailOtpAvailable] = useState(false);
   const [otpRequired, setOtpRequired] = useState(true);
   const [checkingOtpChannels, setCheckingOtpChannels] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -70,12 +69,11 @@ function Register() {
     otpApi.getChannels()
       .then((response) => {
         const channels = response.data.channels || {};
-        setOtpChannels({ email: Boolean(channels.email), sms: Boolean(channels.sms) });
+        setEmailOtpAvailable(Boolean(channels.email));
         setOtpRequired(response.data.registration_requires_verification !== false);
-        if (!channels.email && channels.sms) setOtpChannel("sms");
       })
       .catch(() => {
-        setOtpChannels({ email: false, sms: false });
+        setEmailOtpAvailable(false);
         setOtpRequired(true);
       })
       .finally(() => setCheckingOtpChannels(false));
@@ -130,7 +128,6 @@ function Register() {
 
   const sendOtp = async () => {
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phonePattern = /^[0-9]{10}$/;
     const normalizedEmail = form.email.trim().toLowerCase();
 
     if (!emailPattern.test(normalizedEmail)) {
@@ -142,17 +139,8 @@ function Register() {
       return;
     }
 
-    if (otpChannel === "sms" && !phonePattern.test(form.phone.trim())) {
-      setErrors((currentErrors) => ({
-        ...currentErrors,
-        phone: "Enter a valid 10 digit phone number before requesting SMS OTP.",
-      }));
-      setStatus(null);
-      return;
-    }
-
     try {
-      const response = await otpApi.send(normalizedEmail, otpChannel, form.phone.trim());
+      const response = await otpApi.send(normalizedEmail, "email", form.phone.trim());
       setForm((currentForm) => ({ ...currentForm, email: normalizedEmail }));
       setOtpSent(true);
       setOtpCountdown(30);
@@ -162,7 +150,7 @@ function Register() {
         type: "success",
         message: response.data.dev_otp
           ? `Your verification code: ${response.data.dev_otp}`
-          : `OTP sent to your ${otpChannel === "sms" ? "phone" : "email"}.`,
+          : "OTP sent to your email.",
       });
     } catch (error) {
       setStatus({
@@ -186,7 +174,7 @@ function Register() {
         const verification = await otpApi.verify(
           normalizedEmail,
           enteredOtp,
-          otpChannel,
+          "email",
           form.phone.trim()
         );
         if (!verification.data.success) {
@@ -381,34 +369,21 @@ function Register() {
                     <span>Verification method</span>
                     <small>
                       {otpRequired
-                        ? "Choose where Bazario should send your six-digit code."
+                        ? "Bazario will send a six-digit code to your email."
                         : "Bazario will keep your account ready and request verification when required."}
                     </small>
                   </div>
                   <div className="register-otp__channels">
                     <button
-                      className={otpChannel === "email" ? "is-active" : ""}
+                      className="is-active"
                       type="button"
-                      disabled={checkingOtpChannels || !otpChannels.email}
+                      disabled={checkingOtpChannels || !emailOtpAvailable}
                       onClick={() => {
-                        setOtpChannel("email");
                         setOtpSent(false);
                         setEnteredOtp("");
                       }}
                     >
                       <Mail size={16} /> Email
-                    </button>
-                    <button
-                      className={otpChannel === "sms" ? "is-active" : ""}
-                      type="button"
-                      disabled={checkingOtpChannels || !otpChannels.sms}
-                      onClick={() => {
-                        setOtpChannel("sms");
-                        setOtpSent(false);
-                        setEnteredOtp("");
-                      }}
-                    >
-                      <Phone size={16} /> Phone SMS
                     </button>
                   </div>
                 </div>
@@ -419,9 +394,9 @@ function Register() {
                   </p>
                 )}
 
-                {!checkingOtpChannels && otpRequired && !otpChannels.email && !otpChannels.sms && (
+                {!checkingOtpChannels && otpRequired && !emailOtpAvailable && (
                   <p className="register-otp__unavailable">
-                    Verification is temporarily unavailable. Please try again shortly.
+                    Email verification is temporarily unavailable. Please try again shortly.
                   </p>
                 )}
 
@@ -433,15 +408,15 @@ function Register() {
                     disabled={
                       checkingOtpChannels ||
                       otpCountdown > 0 ||
-                      !otpChannels[otpChannel]
+                      !emailOtpAvailable
                     }
                   >
                     <ShieldCheck size={17} />
                     {otpCountdown > 0
                       ? `Send again in ${otpCountdown}s`
                       : otpSent
-                        ? `Resend to ${otpChannel === "sms" ? "phone" : "email"}`
-                        : `Send OTP to ${otpChannel === "sms" ? "phone" : "email"}`}
+                        ? "Resend to email"
+                        : "Send OTP to email"}
                   </button>
                 )}
 

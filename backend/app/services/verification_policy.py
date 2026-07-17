@@ -1,6 +1,6 @@
 import os
 
-from app.services.otp_delivery import email_is_configured, sms_is_configured
+from app.services.otp_delivery import email_is_configured
 
 
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
@@ -22,4 +22,4 @@ def registration_requires_verification() -> bool:
     if APP_ENV == "production":
         return True
 
-    return email_is_configured() or sms_is_configured() or OTP_ALLOW_DEV_CODE
+    return email_is_configured() or OTP_ALLOW_DEV_CODE

@@ -1,9 +1,6 @@
 # Real OTP Delivery
 
-Bazario supports two registration OTP channels:
-
-- SMTP email
-- Twilio SMS
+Bazario supports email registration OTP through SMTP.
 
 OTP values are hashed before being stored in the SQL document store. Expired OTP records are rejected during verification.
 
@@ -26,19 +23,6 @@ MAIL_SSL_TLS=false
 ```
 
 Do not use the normal Google account password.
-
-## Phone SMS with Twilio
-
-Create a Twilio account and sender number, then configure:
-
-```env
-TWILIO_ACCOUNT_SID=AC...
-TWILIO_AUTH_TOKEN=...
-TWILIO_FROM_NUMBER=+1...
-DEFAULT_PHONE_COUNTRY_CODE=+91
-```
-
-Twilio trial accounts can generally send only to verified recipient numbers. Country-specific sender registration and messaging regulations may also apply.
 
 ## Development codes
 
