@@ -16,7 +16,7 @@ from app.config.security import validate_security_config
 
 validate_security_config()
 
-from app.api.routes import auth, products, otp, payment, address, reviews, wishlist, admin, cart, orders, prescriptions, notifications, support
+from app.api.routes import auth, products, payment, address, reviews, wishlist, admin, cart, orders, prescriptions, notifications, support
 from app.db.database import client, database
 from scripts.seed_demo_products import seed_products
 
@@ -182,7 +182,6 @@ app.include_router(cart.router, prefix="/cart", tags=["Cart"])
 app.include_router(orders.router, prefix="/orders", tags=["Orders"])
 app.include_router(prescriptions.router, prefix="/prescriptions", tags=["Prescriptions"])
 app.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
-app.include_router(otp.router, prefix="/otp", tags=["OTP Authentication"])
 app.include_router(payment.router, prefix="/payment", tags=["Payments"])
 app.include_router(address.router, prefix="/address", tags=["Addresses"])
 app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])

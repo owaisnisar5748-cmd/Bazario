@@ -80,14 +80,6 @@ export const authApi = {
   updateSellerOnboarding: (onboarding) => API.put("/auth/seller-onboarding", onboarding),
 };
 
-export const otpApi = {
-  getChannels: () => API.get("/otp/channels"),
-  send: (email, channel = "email", phone = "") =>
-    API.post("/otp/send-otp", { email, channel, phone }),
-  verify: (email, otp, channel = "email", phone = "") =>
-    API.post("/otp/verify-otp", { email, otp, channel, phone }),
-};
-
 // Products API
 export const productsApi = {
   getAll: () => API.get("/products/"),

@@ -28,19 +28,11 @@ def main():
 
     database_url = (values.get("DATABASE_URL") or "").strip()
     passed &= status("DATABASE_URL", bool(database_url), "configured" if database_url else "missing")
-    app_env = (values.get("APP_ENV") or "development").strip().lower()
-    dev_otp_enabled = (values.get("OTP_ALLOW_DEV_CODE") or "").strip().lower() == "true"
-    if app_env == "production" and dev_otp_enabled:
-        passed &= status("OTP_ALLOW_DEV_CODE", False, "must be false in production")
-
     mail_ready = all(
         (values.get(key) or "").strip()
         for key in ("MAIL_USERNAME", "MAIL_PASSWORD", "MAIL_FROM", "MAIL_SERVER")
     )
-    status("Email OTP delivery", mail_ready, "configured" if mail_ready else "SMTP credentials required")
-
-    if app_env == "production" and not mail_ready:
-        passed &= status("Production OTP", False, "configure SMTP email before launch")
+    status("Password reset email", mail_ready, "configured" if mail_ready else "optional SMTP credentials missing")
 
     cloudinary_ready = all(
         (values.get(key) or "").strip()

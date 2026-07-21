@@ -1,8 +1,8 @@
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Lock, Mail, Phone, ShieldCheck, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Footer from "../components/Footer";
-import { authApi, otpApi } from "../services/api";
+import { authApi } from "../services/api";
 import "./Register.css";
 
 const categoryTiles = [
@@ -42,12 +42,6 @@ function Register() {
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [enteredOtp, setEnteredOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCountdown, setOtpCountdown] = useState(0);
-  const [emailOtpAvailable, setEmailOtpAvailable] = useState(false);
-  const [otpRequired, setOtpRequired] = useState(true);
-  const [checkingOtpChannels, setCheckingOtpChannels] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -64,30 +58,6 @@ function Register() {
     if (score <= 3) return { label: "Good password", score };
     return { label: "Strong password", score };
   }, [form.password]);
-
-  useEffect(() => {
-    otpApi.getChannels()
-      .then((response) => {
-        const channels = response.data.channels || {};
-        setEmailOtpAvailable(Boolean(channels.email));
-        setOtpRequired(response.data.registration_requires_verification !== false);
-      })
-      .catch(() => {
-        setEmailOtpAvailable(false);
-        setOtpRequired(true);
-      })
-      .finally(() => setCheckingOtpChannels(false));
-  }, []);
-
-  useEffect(() => {
-    if (!otpCountdown) return undefined;
-
-    const timer = setTimeout(() => {
-      setOtpCountdown((seconds) => seconds - 1);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [otpCountdown]);
 
   const updateField = (event) => {
     const { name, value } = event.target;
@@ -119,53 +89,9 @@ function Register() {
       nextErrors.confirmPassword = "Passwords do not match.";
     }
     if (!form.gender) nextErrors.gender = "Select your gender.";
-    if (otpRequired && !otpSent) nextErrors.otp = "Send the OTP before registering.";
-    if (otpRequired && otpSent && enteredOtp.length !== 6) nextErrors.otp = "Enter the 6 digit OTP.";
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
-  };
-
-  const sendOtp = async () => {
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const normalizedEmail = form.email.trim().toLowerCase();
-
-    if (!emailPattern.test(normalizedEmail)) {
-      setErrors((currentErrors) => ({
-        ...currentErrors,
-        email: "Enter a valid email before requesting an OTP.",
-      }));
-      setStatus(null);
-      return;
-    }
-
-    try {
-      const response = await otpApi.send(normalizedEmail, "email", form.phone.trim());
-      setForm((currentForm) => ({ ...currentForm, email: normalizedEmail }));
-      setOtpSent(true);
-      setOtpCountdown(30);
-      setEnteredOtp("");
-      setErrors((currentErrors) => ({ ...currentErrors, otp: "" }));
-      setStatus({
-        type: "success",
-        message: response.data.dev_otp
-          ? `Your verification code: ${response.data.dev_otp}`
-          : "OTP sent to your email.",
-      });
-    } catch (error) {
-      const statusCode = error.response?.status;
-      setStatus({
-        type: "error",
-        message:
-          error.response?.data?.detail ||
-          (statusCode
-            ? `Could not send OTP. Server returned status ${statusCode}.`
-            : null) ||
-          (error.code === "ECONNABORTED"
-            ? "Could not send OTP because the email service took too long. Try again."
-            : "Could not reach the OTP service. Check backend URL and email configuration."),
-      });
-    }
   };
 
   const register = async (event) => {
@@ -178,21 +104,6 @@ function Register() {
 
     try {
       const normalizedEmail = form.email.trim().toLowerCase();
-      if (otpRequired) {
-        const verification = await otpApi.verify(
-          normalizedEmail,
-          enteredOtp,
-          "email",
-          form.phone.trim()
-        );
-        if (!verification.data.success) {
-          setErrors((currentErrors) => ({
-            ...currentErrors,
-            otp: verification.data.message || "Invalid OTP.",
-          }));
-          return;
-        }
-      }
 
       await authApi.register({
         username: normalizedEmail,
@@ -209,8 +120,6 @@ function Register() {
         message: "Account created successfully. Redirecting to login...",
       });
       setForm(initialForm);
-      setEnteredOtp("");
-      setOtpSent(false);
 
       setTimeout(() => {
         navigate("/login");
@@ -278,7 +187,7 @@ function Register() {
 
             <div className="register-card__eyebrow">
               <ShieldCheck size={15} />
-              Verified signup
+              Fast signup
             </div>
 
             <div className="register-card__header">
@@ -286,13 +195,13 @@ function Register() {
                 Create <em>account.</em>
               </h2>
               <p>
-                Use a verified email to keep your shopping, profile, and seller access protected.
+                Create your Bazario account and start shopping or selling without extra steps.
               </p>
             </div>
 
             <div className="register-assurances">
               <span>
-                <Check size={14} /> Protected signup
+                <Check size={14} /> Simple signup
               </span>
               <span>
                 <Check size={14} /> Customer or seller
@@ -370,83 +279,6 @@ function Register() {
                 </div>
                 {errors.phone && <small>{errors.phone}</small>}
               </label>
-
-              <section className="register-otp">
-                <div className="register-otp__header">
-                  <div>
-                    <span>Verification method</span>
-                    <small>
-                      {otpRequired
-                        ? "Bazario will send a six-digit code to your email."
-                        : "Bazario will keep your account ready and request verification when required."}
-                    </small>
-                  </div>
-                  <div className="register-otp__channels">
-                    <button
-                      className="is-active"
-                      type="button"
-                      disabled={checkingOtpChannels || !emailOtpAvailable}
-                      onClick={() => {
-                        setOtpSent(false);
-                        setEnteredOtp("");
-                      }}
-                    >
-                      <Mail size={16} /> Email
-                    </button>
-                  </div>
-                </div>
-
-                {!checkingOtpChannels && !otpRequired && (
-                  <p className="register-otp__note">
-                    Account verification is currently handled after signup. You can create your account now.
-                  </p>
-                )}
-
-                {!checkingOtpChannels && otpRequired && !emailOtpAvailable && (
-                  <p className="register-otp__unavailable">
-                    Email verification is temporarily unavailable. Please try again shortly.
-                  </p>
-                )}
-
-                {otpRequired && (
-                  <button
-                    className="register-otp__send"
-                    type="button"
-                    onClick={sendOtp}
-                    disabled={
-                      checkingOtpChannels ||
-                      otpCountdown > 0 ||
-                      !emailOtpAvailable
-                    }
-                  >
-                    <ShieldCheck size={17} />
-                    {otpCountdown > 0
-                      ? `Send again in ${otpCountdown}s`
-                      : otpSent
-                        ? "Resend to email"
-                        : "Send OTP to email"}
-                  </button>
-                )}
-
-                {otpSent && (
-                  <label className="register-field">
-                    <span>Verification code</span>
-                    <div className="register-input">
-                      <ShieldCheck size={18} />
-                      <input
-                        autoComplete="one-time-code"
-                        inputMode="numeric"
-                        maxLength="6"
-                        placeholder="6 digit OTP"
-                        type="text"
-                        value={enteredOtp}
-                        onChange={(event) => setEnteredOtp(event.target.value.replace(/\D/g, ""))}
-                      />
-                    </div>
-                    {errors.otp && <small>{errors.otp}</small>}
-                  </label>
-                )}
-              </section>
 
               <div className="register-form__row">
                 <label className="register-field">

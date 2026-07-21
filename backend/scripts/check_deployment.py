@@ -72,15 +72,6 @@ def main():
     if not hosts or "*" in hosts or any("://" in host for host in hosts):
         failures.append("ALLOWED_HOSTS must contain explicit hostnames without URL schemes")
 
-    email_ready = configured(
-        values,
-        "MAIL_USERNAME",
-        "MAIL_PASSWORD",
-        "MAIL_FROM",
-        "MAIL_SERVER",
-    )
-    if not email_ready:
-        failures.append("Configure SMTP MAIL_* variables for email OTP delivery")
     if not configured(
         values,
         "CLOUDINARY_CLOUD_NAME",

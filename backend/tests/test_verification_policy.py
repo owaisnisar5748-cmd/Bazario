@@ -3,7 +3,6 @@ import os
 import unittest
 from pathlib import Path
 import sys
-from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -26,15 +25,13 @@ class VerificationPolicyTests(unittest.TestCase):
         policy = self.reload_policy(APP_ENV="production", OTP_ALLOW_DEV_CODE="true")
         self.assertFalse(policy.OTP_ALLOW_DEV_CODE)
 
-    def test_production_auto_requires_verification(self):
+    def test_production_auto_does_not_require_registration_verification(self):
         policy = self.reload_policy(APP_ENV="production", REGISTRATION_REQUIRE_VERIFICATION="auto")
-        with patch.object(policy, "email_is_configured", return_value=False):
-            self.assertTrue(policy.registration_requires_verification())
+        self.assertFalse(policy.registration_requires_verification())
 
-    def test_development_auto_uses_available_channels(self):
+    def test_development_auto_does_not_require_registration_verification(self):
         policy = self.reload_policy(APP_ENV="development", REGISTRATION_REQUIRE_VERIFICATION="auto")
-        with patch.object(policy, "email_is_configured", return_value=False):
-            self.assertEqual(policy.registration_requires_verification(), policy.OTP_ALLOW_DEV_CODE)
+        self.assertFalse(policy.registration_requires_verification())
 
 
 if __name__ == "__main__":

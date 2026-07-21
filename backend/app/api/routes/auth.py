@@ -13,12 +13,10 @@ from app.services.otp_delivery import (
     send_email_otp,
 )
 from app.services.otp_service import (
-    consume_verification,
     create_otp,
     invalidate_otp,
     verify_otp_code,
 )
-from app.services.verification_policy import registration_requires_verification
 from app.utils.auth_handler import get_current_user
 from app.utils.rate_limiter import enforce_rate_limit
 from app.config.security import validate_secret_key
@@ -199,13 +197,6 @@ async def register(user: User, request: Request):
     )
 
     try:
-        verification_required = registration_requires_verification()
-        verification = None
-        if verification_required:
-            verification = await consume_verification(user.username)
-            if not verification:
-                raise HTTPException(status_code=400, detail="Verify your email or phone before registering")
-
         # check existing user
         existing_user = await database.users.find_one(
             {"username": user.username}
@@ -229,8 +220,8 @@ async def register(user: User, request: Request):
             "createdAt": datetime.utcnow(),
             "token_version": 0,
             "seller_onboarding": {},
-            "verification_required": verification_required,
-            "verified_at_signup": bool(verification),
+            "verification_required": False,
+            "verified_at_signup": False,
         }
 
         await database.users.insert_one(user_doc)
