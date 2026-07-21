@@ -1,9 +1,14 @@
+import logging
 import os
 import re
+import socket
+import smtplib
 
 from fastapi_mail import FastMail, MessageSchema
 
 from app.utils.email_config import conf
+
+logger = logging.getLogger("bazario.otp")
 
 
 class OTPDeliveryError(RuntimeError):
@@ -24,7 +29,31 @@ def normalize_phone(phone: str) -> str:
 
 
 def email_is_configured() -> bool:
-    return bool(conf.MAIL_USERNAME and conf.MAIL_PASSWORD and conf.MAIL_FROM)
+    return all(
+        value.strip()
+        for value in (
+            os.getenv("MAIL_USERNAME", ""),
+            os.getenv("MAIL_PASSWORD", ""),
+            os.getenv("MAIL_FROM", ""),
+        )
+    )
+
+
+def _mail_delivery_message(error: Exception) -> str:
+    current = error
+    seen = set()
+    while current and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, smtplib.SMTPAuthenticationError):
+            return "Gmail rejected the sender login. Use a Gmail App Password, not your normal Gmail password."
+        if isinstance(current, smtplib.SMTPRecipientsRefused):
+            return "Email provider rejected the recipient address. Check the email and try again."
+        if isinstance(current, smtplib.SMTPSenderRefused):
+            return "Email provider rejected MAIL_FROM. Set MAIL_FROM to the same verified Gmail sender."
+        if isinstance(current, (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, socket.gaierror, TimeoutError)):
+            return "Could not connect to the email provider. Check MAIL_SERVER, MAIL_PORT, and TLS settings."
+        current = current.__cause__ or current.__context__
+    return "Email provider could not deliver the OTP. Check the sender email and Gmail App Password."
 
 
 async def send_email_otp(email: str, otp: str, purpose: str = "registration"):
@@ -49,4 +78,5 @@ async def send_email_otp(email: str, otp: str, purpose: str = "registration"):
     try:
         await FastMail(conf).send_message(message)
     except Exception as error:
-        raise OTPDeliveryError("Email provider could not deliver the OTP") from error
+        logger.warning("Email OTP delivery failed: %s", error)
+        raise OTPDeliveryError(_mail_delivery_message(error)) from error
