@@ -24,6 +24,7 @@ MAIL_SSL_TLS=false
 
 Do not use the normal Google account password.
 Paste the Gmail App Password without spaces; the backend also strips accidental spaces before connecting.
+If `MAIL_FROM` is the same as `MAIL_USERNAME`, you may omit it.
 
 ## Development codes
 

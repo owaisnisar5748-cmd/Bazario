@@ -34,7 +34,6 @@ def email_is_configured() -> bool:
         for value in (
             os.getenv("MAIL_USERNAME", ""),
             os.getenv("MAIL_PASSWORD", ""),
-            os.getenv("MAIL_FROM", ""),
         )
     )
 

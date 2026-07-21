@@ -153,9 +153,17 @@ function Register() {
           : "OTP sent to your email.",
       });
     } catch (error) {
+      const statusCode = error.response?.status;
       setStatus({
         type: "error",
-        message: error.response?.data?.detail || "Could not send OTP. Check email configuration.",
+        message:
+          error.response?.data?.detail ||
+          (statusCode
+            ? `Could not send OTP. Server returned status ${statusCode}.`
+            : null) ||
+          (error.code === "ECONNABORTED"
+            ? "Could not send OTP because the email service took too long. Try again."
+            : "Could not reach the OTP service. Check backend URL and email configuration."),
       });
     }
   };
